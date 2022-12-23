@@ -1,43 +1,24 @@
 import telebot as tb
-from telebot import types
 import bazdan as bd
 import random
 import requests
-from datetime import tzinfo, datetime, timezone, timedelta, time
+from datetime import datetime, timezone
 import zoneinfo
 from config import TELEGRAM_TOKEN, API_KEY
 
-
+# Create bot connection
 bot = tb.TeleBot(TELEGRAM_TOKEN)
 
-
+# set list of questions
 exercise = {'Find the area of a square with side 4': ['16', '8', '12', '20'], 'Find 2th root of 81': ['9', '8', '7', '11'], "What's the capital of Australia?": ['Canberra', 'Sydney', 'Vienna', 'Melbourne'], "What's the capital of Germany?": ['Berlin', 'Munich', 'Cologne', 'Moscow'], "What's the capital of Spain?": ['Madrid', 'Milan', 'Barcelona', 'Valencia'], "What's the capital of Canada?": ['Ottawa', 'Toronto', 'Quebec City', 'Halifax'], "Find factorial 3 (3!)": ['6', '9', '3', '1']}
 
+# set dictionary for timezones
 timezones = {'GMT 0': 'Etc/GMT0', 'GMT - 14': 'Etc/GMT-14', 'GMT - 13': 'Etc/GMT-13', 'GMT - 12': 'Etc/GMT-12', 'GMT - 11': 'Etc/GMT-11', 'GMT - 10': 'Etc/GMT-10', 'GMT - 9': 'Etc/GMT-9', 'GMT - 8': 'Etc/GMT-8', 'GMT - 7': 'Etc/GMT-7', 'GMT - 6': 'Etc/GMT-6', 'GMT - 5': 'Etc/GMT-5', 'GMT - 4': 'Etc/GMT-4', 'GMT - 3': 'Etc/GMT-3', 'GMT - 2': 'Etc/GMT-2', 'GMT - 1': 'Etc/GMT-1', 'GMT + 1': 'Etc/GMT+1', 'GMT + 2': 'Etc/GMT+2', 'GMT + 3': 'Etc/GMT+3', 'GMT + 4': 'Etc/GMT+4', 'GMT + 5': 'Etc/GMT+5', 'GMT + 6': 'Etc/GMT+6', 'GMT + 7': 'Etc/GMT+7', 'GMT + 8': 'Etc/GMT+8', 'GMT + 9': 'Etc/GMT+9', 'GMT + 10': 'Etc/GMT+10', 'GMT + 11': 'Etc/GMT+11', 'GMT + 12': 'Etc/GMT+12'}
 
+# set supportive dictionary for reminders
+time_notification = {'0': '00:00', '15': '00:15', '30': '00:30', '1': '01:00', '2': '02:00', '6': '06:00', '12': '12:00', '24': '24:00'}
 
-'''@bot.message_handler(commands=['help'])
-def help(message):
-    a = message.date
-    print(a)
-    #bot.send_message(message.chat.id)'''
- 
-
-
-
-@bot.message_handler(content_types=['location'])
-def location (message):
-    try:
-        if message.location is not None:
-            query_params = {"LATITUDE": message.location.latitude, "LONGITUDE": message.location.longitude, 'API_key': API_KEY}
-            response = requests.get("https://htmlweb.ru/json/geo/timezone/", params=query_params)
-            tz = zoneinfo.ZoneInfo(response.json()['name'])
-        bd.create_time_zone(message.chat.id, tz)
-        bot.send_message(text='Thank you! Now type in /start', chat_id=message.chat.id)
-    except:
-        bot.send_message(text='Sorry!\nSomething went wrong, please, try again', chat_id=message.chat.id)
-
-
+# start message. Check if there is a timezone for user
 @bot.message_handler(commands=['start'])
 def start(message):
     if str(message.chat.id) not in bd.show_users():
@@ -59,6 +40,22 @@ def start(message):
         markup.add(btn1, btn2, btn3)
         bot.send_message(message.chat.id, text="Choose action".format(message.from_user), reply_markup = markup)
 
+
+# create new timezone for user
+@bot.message_handler(content_types=['location'])
+def location (message):
+    try:
+        if message.location is not None:
+            query_params = {"LATITUDE": message.location.latitude, "LONGITUDE": message.location.longitude, 'API_key': API_KEY}
+            response = requests.get("https://htmlweb.ru/json/geo/timezone/", params=query_params)
+            tz = zoneinfo.ZoneInfo(response.json()['name'])
+        bd.create_time_zone(message.chat.id, tz)
+        bot.send_message(text='Thank you! Now type in /start', chat_id=message.chat.id)
+    except:
+        bot.send_message(text='Sorry!\nSomething went wrong, please, try again', chat_id=message.chat.id)
+
+
+# request for changing timezone for user
 @bot.message_handler(commands=['change'])
 def change_tz(message):
     markup = tb.types.ReplyKeyboardMarkup(row_width=3, one_time_keyboard=True)
@@ -71,6 +68,7 @@ def change_tz(message):
     bot.send_message(message.chat.id, text='Please, choose your time zone or send your location'.format(message.from_user), reply_markup = markup)
 
 
+# create or change timezone in case user didn't send location but choose timezone
 @bot.message_handler(func = lambda message: message.text.startswith('Etc'))
 def location(message):
     tz = zoneinfo.ZoneInfo(message.text)
@@ -78,9 +76,10 @@ def location(message):
     bd.create_time_zone(message.chat.id, tz)
     bot.send_message(chat_id=message.chat.id, text='Thank you! Now type in /start')
 
-time_notification = {'0': '00:00', '15': '00:15', '30': '00:30', '1': '01:00', '2': '02:00', '6': '06:00', '12': '12:00', '24': '24:00'}
+# create new dictionary for collecting information about new reminder
 dic = {}
 
+# creating new reminder. firstly check if there is a timezone for user
 @bot.message_handler(func = lambda message: message.text == 'Create new reminder')
 @bot.message_handler(commands=['new'])
 def new(message):
@@ -112,7 +111,7 @@ def get_date(message):
     try:
         date = message.text
         try:
-            t = datetime(*[int(i) for i in date.split('-')])
+            # t = datetime(*[int(i) for i in date.split('-')])
 
             dic['date'] = date
             msg = bot.reply_to(message, 'Type in time in format HH:MM :')
@@ -128,7 +127,7 @@ def get_time(message):
     try:
         tim = message.text
         try:
-            m = time(*(int(i) for i in tim.split(':')))
+            # m = time(*(int(i) for i in tim.split(':')))
 
             dic['time'] = tim
             msg = bot.reply_to(message, 'Type in priority status (from 1 to 3, where 1 - highest):')
@@ -180,7 +179,7 @@ def get_notification(message):
 
 
 
-
+# show reminders
 @bot.message_handler(commands=['show'])
 @bot.message_handler(func = lambda message: message.text == 'Show my reminders')
 def show(message):
@@ -206,8 +205,7 @@ def show(message):
         bot.send_message(chat_id=message.chat.id, reply_markup=markup1, text='Choose period')
 
 
-
-
+# handling  all requests from buttons
 @bot.callback_query_handler(func = lambda call: True)
 def actions(call):
 
@@ -220,7 +218,7 @@ def actions(call):
     time = date_utc.time()
     date = date_utc.date()
 
-
+    # show reminders according to time frame
     if call.data == 'today':
         ans = bd.show_reminders(call.message.chat.id, time=time, period='today', date=date)
         bot.edit_message_text(text=ans, chat_id=call.message.chat.id, message_id=call.message.message_id)
@@ -246,6 +244,7 @@ def actions(call):
         ans = bd.show_reminders(call.message.chat.id, time=time, period='all')
         bot.edit_message_text(text=ans, chat_id=call.message.chat.id, message_id=call.message.message_id)
 
+    # handling  answer to question for delay important messages
     elif call.data.startswith('&'):
         ind = call.data[1]
         reminder_id = call.data[2:]
@@ -255,18 +254,18 @@ def actions(call):
             bot.edit_message_text(text='Nope, reminder will be shown again in 15 min', chat_id=call.message.chat.id, message_id=call.message.message_id)
             bd.add_additional_notification(reminder_id, date_utc, '00:15')
 
-
+    # delete certain reminder
     elif call.data.isdigit():
         bd.delete_reminder(call.message.chat.id, call.data)
         bot.edit_message_text(message_id=call.message.message_id, chat_id=call.message.chat.id, text="This reminder was deleted")
     
-
+    # delay reminder by 15 min
     elif call.data.startswith('delay'):
         bot.edit_message_text(message_id=call.message.message_id, chat_id=call.message.chat.id, text='Ok, notification delayed by 15 min')
 
         bd.add_additional_notification(call.data[5:], date_utc, '00:15')
 
-
+    # create question for delay important reminder
     elif call.data.startswith('solve'):
         reminder_id = call.data[5:]
         question = random.choice(list(exercise.keys()))
@@ -283,14 +282,19 @@ def actions(call):
 
     
 
-
-
-
+# create menu for deleting reminders
 @bot.message_handler(func = lambda message: message.text == 'Delete reminder')
 @bot.message_handler(commands=['delete'])
 def delete_menu(message):
     if str(message.chat.id) not in bd.show_users():
-        bot.send_message(message.chat.id, text='Seems like you are a new user\nPlease, choose your time zone or send your approximate location\nI need it to determine your time zone, and then we can start')
+        markup = tb.types.ReplyKeyboardMarkup(row_width=3, one_time_keyboard=True)
+        markup.row(tb.types.KeyboardButton('Send location', request_location=True))
+        btns = []
+        for k, v in timezones.items():
+            btn = tb.types.KeyboardButton(v)
+            btns += [btn]
+        markup.add(*btns)
+        bot.send_message(message.chat.id, text='Seems like you are a new user\nPlease, choose your time zone or send your approximate location\nI need it to determine your time zone, and then we can start'.format(message.from_user), reply_markup = markup)
     else:
 
         reminders = bd.show_delete_reminder(message.chat.id)
