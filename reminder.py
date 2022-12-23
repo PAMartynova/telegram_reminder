@@ -5,13 +5,10 @@ import random
 import requests
 from datetime import tzinfo, datetime, timezone, timedelta, time
 import zoneinfo
+from config import TELEGRAM_TOKEN, API_KEY
 
 
-with open('.\\token.txt') as file:
-    token = file.readline().strip()
-    key = file.readline().strip()
-
-bot = tb.TeleBot(token)
+bot = tb.TeleBot(TELEGRAM_TOKEN)
 
 
 exercise = {'Find the area of a square with side 4': ['16', '8', '12', '20'], 'Find 2th root of 81': ['9', '8', '7', '11'], "What's the capital of Australia?": ['Canberra', 'Sydney', 'Vienna', 'Melbourne'], "What's the capital of Germany?": ['Berlin', 'Munich', 'Cologne', 'Moscow'], "What's the capital of Spain?": ['Madrid', 'Milan', 'Barcelona', 'Valencia'], "What's the capital of Canada?": ['Ottawa', 'Toronto', 'Quebec City', 'Halifax'], "Find factorial 3 (3!)": ['6', '9', '3', '1']}
@@ -32,7 +29,7 @@ def help(message):
 def location (message):
     try:
         if message.location is not None:
-            query_params = {"LATITUDE": message.location.latitude, "LONGITUDE": message.location.longitude, 'API_key': key}
+            query_params = {"LATITUDE": message.location.latitude, "LONGITUDE": message.location.longitude, 'API_key': API_KEY}
             response = requests.get("https://htmlweb.ru/json/geo/timezone/", params=query_params)
             tz = zoneinfo.ZoneInfo(response.json()['name'])
         bd.create_time_zone(message.chat.id, tz)
